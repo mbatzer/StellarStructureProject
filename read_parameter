@@ -1,34 +1,42 @@
-def read_parameter(filedir, path='./'):
+def read_parameter(filedir, csv = False, path='./'):
     '''
-    This function reads the parameters of each output.
-    It returns each of the variables as a list.
+    This function reads the parameters of each output_xxxx.dat
+    It returns each parameter values of all output files
     M. Batzer
     Parameters:
     filedir: name of the directory where all the outfiles are saved
     path: path of of the directory
     '''
-    M = ['Mass']
-    x = ['x']
-    y = ['y']
-    Pc = ['Pc']
-    Tc = ['Tc']
-    R = ['R']
-    L = ['L']
-    Teff = ['Teff']
-    Teff_log = ['Teff_log']
-    L_log = ['L_log']
-    for filename in os.listdir(filedir):
-        if filename.endswith(".txt"): 
-            with open(os.path.join(path, filedir,filename)) as file:
+    M = []
+    x = []
+    y = []
+    Pc = []
+    Tc = []
+    R = []
+    L = []
+    Teff = []
+    Teff_log = []
+    L_log = []
+    
+    filelist = glob.glob(os.path.join(path, 'output_files/', '*.dat'))
+    for filename in sorted(filelist, key=lambda s: s.lower()):
+        if filename.endswith('.dat'): 
+            with open(os.path.join('./', filename)) as file:
                 para = []
                 for i in range(2):
                     line = file.readline().split() 
                     line = [value.replace(',', '') for value in line]
                     para.append(line)
-                para = [float(para[0][1::2][i]) for i in range(3)]
+                if para[0][0][-1] == '=':
+                    para[0][0] = para[0][0].split('=')[1]
+                    para = [float(para[0][1::2][i]) for i in range(3)]
+                else:
+                    para[0][0] = para[0][0].split('=')[1]
+                    para = [float(para[0][0::2][i]) for i in range(3)]
                 M.append(para[0])
                 x.append(para[1])
                 y.append(para[2])
+                
                 while file.readline().split()[0] != '*****FINAL':
                     continue
                 para = []
@@ -44,6 +52,13 @@ def read_parameter(filedir, path='./'):
                 Teff.append(float(para[1][1]))
                 Teff_log.append(float(para[1][3]))
                 L_log.append(float(para[1][-1].split(':')[-1]))
-        lista = []
-    idx = [i for i in np.arange(-1,len(M))]
-    return [idx, M, x, y, Pc, Tc, R, L ,Teff, Teff_log, L_log]
+                     
+    idx = [i for i in np.arange(len(M))]
+    output = [idx, M, x, y, Pc, Tc, R, L ,Teff, Teff_log, L_log]
+    output = np.array(output).T
+    if csv == True:
+        filedir = str(filedir)
+        pd.DataFrame(output).to_csv(filedir+'para.csv', sep=",", index=False, 
+                                    header=['index', 'Mass', 'x', 'y', 'Pc', 'Tc', 'R', 'L', 'Teff', 'Teff_log', 'L_log']
+                                   )
+    return output
